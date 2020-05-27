@@ -1,0 +1,162 @@
+from tkinter import *
+import random
+#Maze generation
+class MazeElement():
+    def __init__(self, up, down, left, right):
+        self.up = up
+        self.down = down
+        self.left = left
+        self.right = right
+        self.explored = False
+    def getRight(self):
+        return self.right
+    def getLeft(self):
+        return self.left
+    def getUp(self):
+        return self.up
+    def getDown(self):
+        return self.down
+    def isExplored(self):
+        return self.explored
+    def changeExploreStatus(self):#Sets explore status True
+        self.explored = True
+    def rightTrue(self):
+        self.right = True
+    def leftTrue(self):
+        self.left = True
+    def downTrue(self):
+        self.down = True
+    def upTrue(self):
+        self.up = True
+#Define maze Boundaries
+xBound = 30#Defined as "columns"
+yBound = 30#Defined as "Rows"
+seed = 20#Defined as random number, the same seed will always produce the same map
+start = random.randint(0, xBound-1)
+finish = random.randint(0, xBound-1)
+def generateMaze():
+    #Create 2d area for maze
+    mazeArray = []
+    for a in range(yBound):
+        mazeArray.append([])
+        for b in range(xBound):
+            mazeArray[a].append(MazeElement(False, False, False, False))
+    
+    yStart = random.randrange(yBound)
+    xStart = random.randrange(xBound)
+    return runGeneration(xStart, yStart, mazeArray)
+    
+def runGeneration(xStart, yStart, mazeArray):#Finds every cell and declares it unexplored, still need to assign wall
+    cellholder = []
+    x = xStart
+    y = yStart
+    cell = [y, x]
+    cellholder.append(cell)
+    mazeArray[y][x].changeExploreStatus()
+    direction = ["left", "right", "up", "down"]
+    while(len(cellholder) != 0):
+        cell = cellholder[len(cellholder)-1]#Chooses newest cell (Recursive)
+        y = cell[0]
+        x = cell[1]
+        direction = ["left", "right", "up", "down"]
+        while True:#Finds empty cell next to cell holder, adds it to array, changes explores status
+            direct = random.choice(direction)
+            if direct == "left":
+                if x != 0 and mazeArray[y][x-1].isExplored() == False:#Won't check second statement because first statement is false
+                    x -= 1
+                    tempCell = [y,x]
+                    cellholder.append(tempCell)
+                    mazeArray = borderWall(x,y,x+1,y,mazeArray)
+                    mazeArray[y][x].changeExploreStatus()
+                    break
+                else:
+                    direction.remove("left")
+            if direct == "right":
+                if x != xBound-1 and mazeArray[y][x+1].isExplored() == False:
+                    x += 1
+                    tempCell = [y,x]
+                    cellholder.append(tempCell)
+                    mazeArray = borderWall(x,y,x-1,y,mazeArray)
+                    mazeArray[y][x].changeExploreStatus()
+                    break
+                else:
+                    direction.remove("right")
+            if direct == "up":
+                if y != 0 and mazeArray[y-1][x].isExplored() == False:
+                    y -= 1
+                    tempCell = [y,x]
+                    cellholder.append(tempCell)
+                    mazeArray = borderWall(x,y,x,y+1,mazeArray)
+                    mazeArray[y][x].changeExploreStatus()
+                    break
+                else:
+                    direction.remove("up")
+            if direct == "down":
+                if y != yBound-1 and mazeArray[y+1][x].isExplored() == False:
+                    y += 1
+                    tempCell = [y,x]
+                    cellholder.append(tempCell)
+                    mazeArray = borderWall(x,y,x,y-1,mazeArray)
+                    mazeArray[y][x].changeExploreStatus()
+                    break
+                else:
+                    direction.remove("down")
+            if len(direction) == 0:#Finds that cell has no unexplored neighbors
+                cellholder.remove(cell)#Does this work?
+                break
+    print("Maze generation complete! Sending map schematics to gui")
+    return mazeArray
+def borderWall(x, y, xb, yb, mazeArray):
+    #Looks at new x, y picked from runGeneration
+    #Border walls between cells
+    if x != 0 and mazeArray[y][x-1].isExplored() == True and xb != x-1:
+        mazeArray[y][x].leftTrue()
+    if x != xBound-1 and mazeArray[y][x+1].isExplored() == True and xb != x+1:
+        mazeArray[y][x].rightTrue()
+    if y != 0 and mazeArray[y-1][x].isExplored() == True and yb != y-1:
+        mazeArray[y][x].upTrue()
+    if y != yBound-1 and mazeArray[y+1][x].isExplored() == True and yb != y+1:
+        mazeArray[y][x].downTrue()
+    #Outside wall borders
+    if x == 0:
+        mazeArray[y][x].leftTrue()
+    if x == xBound-1:
+        mazeArray[y][x].rightTrue()
+    if y == 0 and x != start:
+        mazeArray[y][x].upTrue()
+    if y == yBound-1 and x != finish:
+        mazeArray[y][x].downTrue()
+    return mazeArray
+
+#GUI
+class Win(Frame):
+    def __init__(self, completeArray):
+        super().__init__()
+        self.initUI(completeArray)
+    def initUI(self, completeArray):
+        self.master.title("Maze")
+        self.pack(fill=BOTH, expand=1)
+        canvas = Canvas(self)
+        #For lines, x1, y1, x2, y2
+        #a is y, b is x
+        for y in range(len(completeArray)):
+            for x in range(len(completeArray)):
+                a = y + 1
+                b = x + 5
+                if completeArray[y][x].getDown() == True:
+                    canvas.create_line(b*20, a*20 + 20, b*20 + 20, a*20 + 20)
+                if completeArray[y][x].getUp() == True:
+                    canvas.create_line(b*20, a*20, b*20 + 20, a*20)
+                if completeArray[y][x].getRight() == True:
+                    canvas.create_line(b*20 + 20, a*20, b*20 + 20, a*20 +20)
+                if completeArray[y][x].getLeft() == True:
+                    canvas.create_line(b*20, a*20, b*20, a*20 +20)
+        canvas.pack(fill=BOTH, expand=1)
+def main():
+    random.seed(a = seed, version = 2)
+    completeArray = generateMaze()
+    root = Tk()
+    window = Win(completeArray)
+    root.geometry('1200x1200')
+    root.mainloop()
+main()
